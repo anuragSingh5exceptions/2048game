@@ -16,7 +16,7 @@ jobs:
           distribution: 'adopt'
 
       - name: Build with Gradle
-        uses: chmod +x ./gradlew
+        uses: ./gradlew assembleDebug
 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.1.3
