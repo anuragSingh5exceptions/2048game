@@ -42,7 +42,6 @@ jobs:
       ###########################################
 
       - name: Get latest Firebase version
-        id: firebase_version
         run: |
 
           latest_release=$(firebase appdistribution:releases:list \
@@ -52,21 +51,29 @@ jobs:
             --token "${{ secrets.FIREBASE_TOKEN }}")
 
           echo "Latest release:"
-          echo $latest_release
+          echo "$latest_release"
 
-          versionName=$(echo $latest_release | jq -r '.[0].displayVersion // "1.0.0"')
-          versionCode=$(echo $latest_release | jq -r '.[0].buildVersion // "1"')
+          versionName=$(echo "$latest_release" | jq -r '.[0].displayVersion // "1.0.0"')
+          versionCode=$(echo "$latest_release" | jq -r '.[0].buildVersion // "1"')
 
           echo "Current versionName=$versionName"
           echo "Current versionCode=$versionCode"
 
+          # ensure version has 3 parts
           IFS='.' read -r major minor patch <<< "$versionName"
+
+          major=${major:-1}
+          minor=${minor:-0}
+          patch=${patch:-0}
 
           patch=$((patch+1))
 
           newVersionName="$major.$minor.$patch"
 
           newVersionCode=$((versionCode+1))
+
+          echo "New versionName=$newVersionName"
+          echo "New versionCode=$newVersionCode"
 
           echo "NEW_VERSION_NAME=$newVersionName" >> $GITHUB_ENV
           echo "NEW_VERSION_CODE=$newVersionCode" >> $GITHUB_ENV
