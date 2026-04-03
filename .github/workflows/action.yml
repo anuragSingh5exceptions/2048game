@@ -1,8 +1,10 @@
-
-name: Android Firebase Build
+name: Build & Upload to Firebase
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
 
@@ -12,64 +14,90 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
 
-      - uses: actions/setup-java@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
 
-      - name: Install SDK 36
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+
+      ###########################################
+      # Get latest version from Firebase
+      ###########################################
+
+      - name: Get latest Firebase version
+        id: firebase_version
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+          latest_release=$(firebase appdistribution:releases:list \
+            --app ${{ secrets.FIREBASE_APP_ID }} \
+            --limit 1 \
+            --output json \
+            --token "${{ secrets.FIREBASE_TOKEN }}")
+
+          echo "Latest release:"
+          echo $latest_release
+
+          versionName=$(echo $latest_release | jq -r '.[0].displayVersion // "1.0.0"')
+          versionCode=$(echo $latest_release | jq -r '.[0].buildVersion // "1"')
+
+          echo "Current versionName=$versionName"
+          echo "Current versionCode=$versionCode"
+
+          IFS='.' read -r major minor patch <<< "$versionName"
+
+          patch=$((patch+1))
+
+          newVersionName="$major.$minor.$patch"
+
+          newVersionCode=$((versionCode+1))
+
+          echo "NEW_VERSION_NAME=$newVersionName" >> $GITHUB_ENV
+          echo "NEW_VERSION_CODE=$newVersionCode" >> $GITHUB_ENV
 
 
-      - name: Build APK
-        run: ./gradlew assembleDebug
+      ###########################################
+      # Build APK
+      ###########################################
+
+      - name: Build Release APK
+        run: |
+
+          ./gradlew clean assembleRelease \
+          -PVERSION_NAME=$NEW_VERSION_NAME \
+          -PVERSION_CODE=$NEW_VERSION_CODE
 
 
-      - name: Upload to Firebase
+      ###########################################
+      # Upload to Firebase
+      ###########################################
+
+      - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
+
           appId: ${{ secrets.FIREBASE_APP_ID }}
+
           token: ${{ secrets.FIREBASE_TOKEN }}
-          groups: testers
-          file: app/build/outputs/apk/debug/app-debug.apk
 
+          groups: qa-team
 
-#            # Create APK Release
-#      - name: Build apk release project (APK) - ${{ env.main_project_module }} module
-#        run: ./gradlew assemble
-#
-#            # Create Bundle AAB Release
-#            # Noted for main module build [main_project_module]:bundleRelease
-#      - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
-#        run: ./gradlew ${{ env.main_project_module }}:bundleRelease
-#
-#            # Upload Artifact Build
-#            # Noted For Output [main_project_module]/build/outputs/apk/debug/
-#      - name: Upload APK Debug - ${{ env.repository_name }}
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: ${{ env.date_today }} - ${{ env.playstore_name }} - ${{ env.repository_name }} - APK(s) debug generated
-#          path: ${{ env.main_project_module }}/build/outputs/apk/debug/
-#
-#            # Noted For Output [main_project_module]/build/outputs/apk/release/
-#      - name: Upload APK Release - ${{ env.repository_name }}
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: ${{ env.date_today }} - ${{ env.playstore_name }} - ${{ env.repository_name }} - APK(s) release generated
-#          path: ${{ env.main_project_module }}/build/outputs/apk/release/
-#
-#            # Noted For Output [main_project_module]/build/outputs/bundle/release/
-#      - name: Upload AAB (App Bundle) Release - ${{ env.repository_name }}
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: ${{ env.date_today }} - ${{ env.playstore_name }} - ${{ env.repository_name }} - App bundle(s) AAB release generated
-#          path: ${{ env.main_project_module }}/build/outputs/bundle/release/
+          file: app/build/outputs/apk/release/app-release.apk
+
+          releaseNotesFile: app/build/release-notes.txt
