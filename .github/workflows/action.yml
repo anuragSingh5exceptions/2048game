@@ -44,22 +44,40 @@ jobs:
       - name: Get latest Firebase version
         run: |
 
+          set +e
+
           latest_release=$(firebase appdistribution:releases:list \
             --app ${{ secrets.FIREBASE_APP_ID }} \
             --limit 1 \
             --output json \
             --token "${{ secrets.FIREBASE_TOKEN }}")
 
-          echo "Latest release:"
+          exit_code=$?
+
+          set -e
+
+          echo "Latest release raw output:"
           echo "$latest_release"
 
-          versionName=$(echo "$latest_release" | jq -r '.[0].displayVersion // "1.0.0"')
-          versionCode=$(echo "$latest_release" | jq -r '.[0].buildVersion // "1"')
+          # if firebase returned error OR empty result
+          if [ $exit_code -ne 0 ] || [ -z "$latest_release" ] || [ "$latest_release" = "[]" ]; then
+
+            echo "No previous release found, starting from 1.0.0 (1)"
+
+            versionName="1.0.0"
+            versionCode=1
+
+          else
+
+            versionName=$(echo "$latest_release" | jq -r '.[0].displayVersion // "1.0.0"')
+            versionCode=$(echo "$latest_release" | jq -r '.[0].buildVersion // "1"')
+
+          fi
 
           echo "Current versionName=$versionName"
           echo "Current versionCode=$versionCode"
 
-          # ensure version has 3 parts
+          # ensure 3 digit version format
           IFS='.' read -r major minor patch <<< "$versionName"
 
           major=${major:-1}
@@ -69,7 +87,6 @@ jobs:
           patch=$((patch+1))
 
           newVersionName="$major.$minor.$patch"
-
           newVersionCode=$((versionCode+1))
 
           echo "New versionName=$newVersionName"
