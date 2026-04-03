@@ -1,4 +1,4 @@
-name: Build & Upload to Firebase
+name: Build Signed APK & Upload to Firebase
 
 on:
   workflow_dispatch:
@@ -14,11 +14,11 @@ jobs:
 
     steps:
 
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
 
-      - name: Setup JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -37,10 +37,16 @@ jobs:
         run: sudo apt-get install jq
 
 
-      ###########################################
-      # Get latest version from Firebase
-      ###########################################
+      # create keystore file in runner
+      - name: Decode keystore
+        run: |
 
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+
+          echo "KEYSTORE_PATH=$PWD/keystore.jks" >> $GITHUB_ENV
+
+
+      # auto version increment from firebase latest release
       - name: Get latest Firebase version
         run: |
 
@@ -56,13 +62,12 @@ jobs:
 
           set -e
 
-          echo "Latest release raw output:"
+          echo "Firebase response:"
           echo "$latest_release"
 
-          # if firebase returned error OR empty result
           if [ $exit_code -ne 0 ] || [ -z "$latest_release" ] || [ "$latest_release" = "[]" ]; then
 
-            echo "No previous release found, starting from 1.0.0 (1)"
+            echo "No previous release found"
 
             versionName="1.0.0"
             versionCode=1
@@ -77,7 +82,6 @@ jobs:
           echo "Current versionName=$versionName"
           echo "Current versionCode=$versionCode"
 
-          # ensure 3 digit version format
           IFS='.' read -r major minor patch <<< "$versionName"
 
           major=${major:-1}
@@ -89,18 +93,25 @@ jobs:
           newVersionName="$major.$minor.$patch"
           newVersionCode=$((versionCode+1))
 
-          echo "New versionName=$newVersionName"
-          echo "New versionCode=$newVersionCode"
-
           echo "NEW_VERSION_NAME=$newVersionName" >> $GITHUB_ENV
           echo "NEW_VERSION_CODE=$newVersionCode" >> $GITHUB_ENV
 
+          echo "Next version:"
+          echo "$newVersionName ($newVersionCode)"
 
-      ###########################################
-      # Build APK
-      ###########################################
 
-      - name: Build Release APK
+      # build signed release apk
+      - name: Build signed APK
+        env:
+
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+
         run: |
 
           ./gradlew clean assembleRelease \
@@ -108,11 +119,16 @@ jobs:
           -PVERSION_CODE=$NEW_VERSION_CODE
 
 
-      ###########################################
-      # Upload to Firebase
-      ###########################################
+      # verify apk exists
+      - name: Verify APK
+        run: |
 
-      - name: Upload to Firebase App Distribution
+          echo "APK files:"
+          find app/build -name "*.apk"
+
+
+      # upload to firebase
+      - name: Upload to Firebase
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
 
