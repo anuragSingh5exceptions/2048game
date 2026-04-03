@@ -52,7 +52,7 @@ jobs:
 
           set +e
 
-          latest_release=$(firebase appdistribution:releases:list \
+          latest_release=$(npx firebase-tools appdistribution:releases:list \
             --app ${{ secrets.FIREBASE_APP_ID }} \
             --limit 1 \
             --output json \
@@ -79,9 +79,6 @@ jobs:
 
           fi
 
-          echo "Current versionName=$versionName"
-          echo "Current versionCode=$versionCode"
-
           IFS='.' read -r major minor patch <<< "$versionName"
 
           major=${major:-1}
@@ -95,9 +92,6 @@ jobs:
 
           echo "NEW_VERSION_NAME=$newVersionName" >> $GITHUB_ENV
           echo "NEW_VERSION_CODE=$newVersionCode" >> $GITHUB_ENV
-
-          echo "Next version:"
-          echo "$newVersionName ($newVersionCode)"
 
 
       # build signed release apk
