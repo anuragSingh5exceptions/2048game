@@ -145,20 +145,23 @@ tasks.register("generateReleaseNotes") {
 
     doLast {
 
+        val outputDir =
+            layout.buildDirectory.get().asFile
+
+        if (!outputDir.exists()) {
+            outputDir.mkdirs()
+        }
+
         val outputFile =
-            File("${buildDir}/release-notes.txt")
+            File(outputDir, "release-notes.txt")
 
         outputFile.writeText(releaseNotes)
 
         println("Release notes generated")
-
-        println(releaseNotes)
     }
 }
 
-/**
- * ensure release notes runs before build
- */
+
 tasks.whenTaskAdded {
 
     if (name == "assembleRelease") {
