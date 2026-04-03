@@ -30,7 +30,10 @@ jobs:
 
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run : | 
+          npm install -g firebase-tools@latest
+          firebase --version 
+          firebase experiments:enable appdistribution
 
 
       - name: Install jq
@@ -130,7 +133,7 @@ jobs:
 
           token: ${{ secrets.FIREBASE_TOKEN }}
 
-          groups: qa-team
+          groups: testers
 
           file: app/build/outputs/apk/release/app-release.apk
 
