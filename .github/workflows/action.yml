@@ -2,6 +2,36 @@ name: Build Signed APK & Upload to Firebase
 
 on:
   workflow_dispatch:
+    inputs:
+      ENV:
+        description: "Environment"
+        required: false
+        default: ""
+
+      CORE_VERSION:
+        description: "Core SDK version"
+        required: false
+        default: ""
+
+      CAMERA_VERSION:
+        description: "Camera SDK version"
+        required: false
+        default: ""
+
+      MEDIA_VERSION:
+        description: "Media SDK version"
+        required: false
+        default: ""
+
+      IMAGE_VERSION:
+        description: "Image SDK version"
+        required: false
+        default: ""
+
+      VIDEO_VERSION:
+        description: "Video SDK version"
+        required: false
+        default: ""
   push:
     branches:
       - main
@@ -56,6 +86,34 @@ jobs:
           echo "Version:"
           echo "$VERSION_NAME ($VERSION_CODE)"
         
+
+      # update version.properties
+      - name: Update SDK versions if provided
+        run: |
+
+          FILE=app/src/main/assets/version.properties
+
+          echo "Before update:"
+          cat $FILE
+
+          update_value () {
+            KEY=$1
+            VALUE=$2
+
+            if [ ! -z "$VALUE" ]; then
+              sed -i "s/^$KEY=.*/$KEY=$VALUE/" $FILE
+            fi
+          }
+
+          update_value "Env" "${{ github.event.inputs.ENV }}"
+          update_value "core" "${{ github.event.inputs.CORE_VERSION }}"
+          update_value "camera" "${{ github.event.inputs.CAMERA_VERSION }}"
+          update_value "media" "${{ github.event.inputs.MEDIA_VERSION }}"
+          update_value "image" "${{ github.event.inputs.IMAGE_VERSION }}"
+          update_value "video" "${{ github.event.inputs.VIDEO_VERSION }}"
+
+          echo "After update:"
+          cat $FILE
 
       # build signed release apk
       - name: Build signed APK

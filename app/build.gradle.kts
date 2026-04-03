@@ -57,7 +57,7 @@ plugins {
 /**
  * Read version.properties
  */
-val versionPropsFile = rootProject.file("version.properties")
+val versionPropsFile = rootProject.file("app/src/main/assets/version.properties")
 val versionProps = Properties()
 
 if (versionPropsFile.exists()) {
