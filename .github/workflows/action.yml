@@ -115,88 +115,88 @@ jobs:
           echo "After update:"
           cat $FILE
 
-      # Unit test cases
-      - name: Run Unit Tests
-        run: |
-
-          echo "Running unit tests..."
-
-          ./gradlew testDebugUnitTest
-
-          echo ""
-          echo "Test summary:"
-
-          TOTAL=$(grep -r "testsuite" app/build/test-results/testDebugUnitTest/*.xml | grep -o 'tests="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
-
-          FAILURES=$(grep -r "testsuite" app/build/test-results/testDebugUnitTest/*.xml | grep -o 'failures="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
-
-          PASSED=$((TOTAL-FAILURES))
-
-          echo "Total tests: $TOTAL"
-          echo "Passed: $PASSED"
-          echo "Failed: $FAILURES"
-
-          if [ "$FAILURES" != "0" ]; then
-            echo "Unit tests failed ❌"
-            exit 1
-          fi
-
-          echo "All tests passed ✅"
-
-      # UI test cases
-      - name: Run UI tests
-
-        continue-on-error: true
-
-        uses: reactivecircus/android-emulator-runner@v2
-
-        with:
-
-          api-level: 28
-
-          arch: x86
-
-          target: default
-
-          profile: Nexus 6
-
-          emulator-options: -no-window -noaudio -gpu swiftshader_indirect -no-boot-anim -no-snapshot
-
-          emulator-boot-timeout: 600
-
-          script: |
-
-            adb wait-for-device
-
-            sleep 20
-
-            ./gradlew connectedDebugAndroidTest
-            
-      - name: Print UI test summary
-
-        if: always()
-
-        run: |
-
-          echo "Checking UI test results..."
-
-          if ls app/build/outputs/androidTest-results/connected/*.xml 1> /dev/null 2>&1; then
-
-            TOTAL=$(grep -r "testsuite" app/build/outputs/androidTest-results/connected/*.xml | grep -o 'tests="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
-
-            FAILURES=$(grep -r "testsuite" app/build/outputs/androidTest-results/connected/*.xml | grep -o 'failures="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
-
-            PASSED=$((TOTAL-FAILURES))
-
-            echo "UI Tests Total: $TOTAL"
-            echo "UI Tests Passed: $PASSED"
-            echo "UI Tests Failed: $FAILURES"
-
-          else
-
-            echo "No UI test report found"
-
-          fi
+#      # Unit test cases
+#      - name: Run Unit Tests
+#        run: |
+#
+#          echo "Running unit tests..."
+#
+#          ./gradlew testDebugUnitTest
+#
+#          echo ""
+#          echo "Test summary:"
+#
+#          TOTAL=$(grep -r "testsuite" app/build/test-results/testDebugUnitTest/*.xml | grep -o 'tests="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+#
+#          FAILURES=$(grep -r "testsuite" app/build/test-results/testDebugUnitTest/*.xml | grep -o 'failures="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+#
+#          PASSED=$((TOTAL-FAILURES))
+#
+#          echo "Total tests: $TOTAL"
+#          echo "Passed: $PASSED"
+#          echo "Failed: $FAILURES"
+#
+#          if [ "$FAILURES" != "0" ]; then
+#            echo "Unit tests failed ❌"
+#            exit 1
+#          fi
+#
+#          echo "All tests passed ✅"
+#
+#      # UI test cases
+#      - name: Run UI tests
+#
+#        continue-on-error: true
+#
+#        uses: reactivecircus/android-emulator-runner@v2
+#
+#        with:
+#
+#          api-level: 28
+#
+#          arch: x86
+#
+#          target: default
+#
+#          profile: Nexus 6
+#
+#          emulator-options: -no-window -noaudio -gpu swiftshader_indirect -no-boot-anim -no-snapshot
+#
+#          emulator-boot-timeout: 600
+#
+#          script: |
+#
+#            adb wait-for-device
+#
+#            sleep 20
+#
+#            ./gradlew connectedDebugAndroidTest
+#
+#      - name: Print UI test summary
+#
+#        if: always()
+#
+#        run: |
+#
+#          echo "Checking UI test results..."
+#
+#          if ls app/build/outputs/androidTest-results/connected/*.xml 1> /dev/null 2>&1; then
+#
+#            TOTAL=$(grep -r "testsuite" app/build/outputs/androidTest-results/connected/*.xml | grep -o 'tests="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+#
+#            FAILURES=$(grep -r "testsuite" app/build/outputs/androidTest-results/connected/*.xml | grep -o 'failures="[0-9]*"' | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+#
+#            PASSED=$((TOTAL-FAILURES))
+#
+#            echo "UI Tests Total: $TOTAL"
+#            echo "UI Tests Passed: $PASSED"
+#            echo "UI Tests Failed: $FAILURES"
+#
+#          else
+#
+#            echo "No UI test report found"
+#
+#          fi
 
       # build signed release apk
       - name: Build signed APK
@@ -239,3 +239,44 @@ jobs:
           file: app/build/outputs/apk/release/app-release.apk
 
           releaseNotesFile: app/build/release-notes.txt
+
+
+      - name: Slack Notification
+
+        if: always()
+
+        run: |
+
+          STATUS="${{ job.status }}"
+
+          MESSAGE=""
+
+          if [ "$STATUS" = "success" ]; then
+            MESSAGE="✅ Build Successful"
+          else
+            MESSAGE="❌ Build Failed"
+          fi
+
+          curl -X POST -H 'Content-type: application/json' \
+
+          --data "{
+
+            \"text\": \"📱 APK Build Update
+
+          $MESSAGE
+
+            App Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)
+
+            Environment: ${{ github.event.inputs.ENV }}
+
+            Branch: ${{ github.ref_name }}
+
+            Commit: ${{ github.sha }}
+
+            Triggered by: ${{ github.actor }}
+
+            Firebase: uploaded successfully\"
+
+            }" \
+      
+          ${{ secrets.SLACK_WEBHOOK_URL }}

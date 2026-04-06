@@ -18,74 +18,88 @@
 </head>
 <body>
   <script src="js/i18n.js"></script>
-  <div class="container">
-    <div class="heading">
-      <h1 class="title">2048</h1>
-      <div class="scores-container">
-        <div class="score-container">0</div>
-        <div class="best-container">0</div>
+  <div class="app-shell">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div class="container">
+      <div class="heading">
+        <div class="title-wrap">
+          <p class="eyebrow">Arcade puzzle</p>
+          <h1 class="title">2048</h1>
+          <p class="tagline">Stack fast, merge clean, chase the gold tile.</p>
+        </div>
+        <div class="scores-container">
+          <div class="score-container">0</div>
+          <div class="best-container">0</div>
+        </div>
+      </div>
+
+      <div class="above-game">
+        <div class="intro-panel">
+          <div id="night">
+            <a id="nightbtn"><img src="style/night.png" alt="theme"></a>
+          </div>
+          <p class="game-intro"><script>document.write(i18n.get('intro'))</script></p>
+        </div>
+        <div class="controls">
+          <a class="restart-button"><script>document.write(i18n.get('new_game'))</script></a>
+          <a class="undo-button"><script>document.write(i18n.get('undo'))</script></a>
+        </div>
+      </div>
+
+      <div class="board-shell">
+        <div class="game-container">
+          <div class="game-message">
+            <p></p>
+            <div class="lower">
+	            <a class="keep-playing-button"><script>document.write(i18n.get('keep_going'))</script></a>
+              <a class="retry-button"><script>document.write(i18n.get('try_again'))</script></a>
+              <a class="confirm-button"><script>document.write(i18n.get('ok'))</script></a>
+              <a class="undo-move-button"><script>document.write(i18n.get('undo'))</script></a>
+              <a class="cancel-button"><script>document.write(i18n.get('cancel'))</script></a>
+            </div>
+          </div>
+
+          <div class="grid-container">
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+          </div>
+
+          <div class="tile-container">
+
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="above-game">
-      <div id="night" style="padding:10px;">
-            <a id="nightbtn"><img src="style/night.png"></a>
-      </div>
-      <p class="game-intro"><script>document.write(i18n.get('intro'))</script></p>
-      <a class="restart-button"><script>document.write(i18n.get('new_game'))</script></a>
-      <a class="undo-button"><script>document.write(i18n.get('undo'))</script></a>      
-    </div>
-
-    <div class="game-container">
-      <div class="game-message">
-        <p></p>
-        <div class="lower">
-	        <a class="keep-playing-button"><script>document.write(i18n.get('keep_going'))</script></a>
-          <a class="retry-button"><script>document.write(i18n.get('try_again'))</script></a>
-          <a class="confirm-button"><script>document.write(i18n.get('ok'))</script></a>
-          <a class="undo-move-button"><script>document.write(i18n.get('undo'))</script></a>          
-          <a class="cancel-button"><script>document.write(i18n.get('cancel'))</script></a>
-        </div>
-      </div>
-
-      <div class="grid-container">
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-      </div>
-
-      <div class="tile-container">
-
-      </div>
-    </div>
-
   </div>
 
   <script src="js/bind_polyfill.js"></script>
   <script src="js/classlist_polyfill.js"></script>
   <script src="js/animframe_polyfill.js"></script>
   <script src="js/keyboard_input_manager.js"></script>
+  <script src="js/feedback.js"></script>
   <script src="js/html_actuator.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/tile.js"></script>

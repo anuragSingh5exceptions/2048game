@@ -3,8 +3,11 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.boardShell       = document.querySelector(".board-shell");
+  this.container        = document.querySelector(".container");
 
   this.score = 0;
+  this.bestScore = 0;
 }
 
 HTMLActuator.prototype.actuate = function (grid, metadata) {
@@ -23,6 +26,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
+    self.animateMove(metadata.lastMove);
 
     if (metadata.terminated) {
         // when last move create a 2048 tile and couldn't find next move,
@@ -128,11 +132,18 @@ HTMLActuator.prototype.updateScore = function (score) {
     addition.textContent = "+" + difference;
 
     this.scoreContainer.appendChild(addition);
+    this.flashElement(this.scoreContainer, "score-bump", 320);
   }
 };
 
 HTMLActuator.prototype.updateBestScore = function (bestScore) {
+  var previousBest = this.bestScore;
+  this.bestScore = bestScore;
   this.bestContainer.textContent = bestScore;
+
+  if (bestScore > previousBest) {
+    this.flashElement(this.bestContainer, "score-bump", 320);
+  }
 };
 
 HTMLActuator.prototype.message = function (won) {
@@ -163,4 +174,42 @@ HTMLActuator.prototype.promptUndo = function () {
   var message = i18n.get('undo_the_current_move');
   this.messageContainer.classList.add("undo-move");
   this.messageContainer.getElementsByTagName("p")[0].textContent = message;
+};
+
+HTMLActuator.prototype.animateMove = function (lastMove) {
+  if (!lastMove || !lastMove.moved) {
+    return;
+  }
+
+  if (this.container && lastMove.merged) {
+    this.flashElement(this.container, "score-surge", 380);
+  }
+
+  if (!this.boardShell) {
+    return;
+  }
+
+  if (lastMove.won) {
+    this.flashElement(this.boardShell, "board-won", 900);
+  } else if (lastMove.over) {
+    this.flashElement(this.boardShell, "board-over", 520);
+  } else if (lastMove.merged) {
+    this.flashElement(this.boardShell, "board-merged", 420);
+  } else {
+    this.flashElement(this.boardShell, "board-shift", 280);
+  }
+};
+
+HTMLActuator.prototype.flashElement = function (element, className, duration) {
+  if (!element) {
+    return;
+  }
+
+  clearTimeout(element._animationTimer);
+  element.classList.remove(className);
+  void element.offsetWidth;
+  element.classList.add(className);
+  element._animationTimer = window.setTimeout(function () {
+    element.classList.remove(className);
+  }, duration || 320);
 };

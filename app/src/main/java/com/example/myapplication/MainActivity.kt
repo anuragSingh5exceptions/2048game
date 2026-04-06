@@ -1,6 +1,10 @@
 package com.example.myapplication
 
 import android.os.Bundle
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.preference.PreferenceManager
 import android.view.MotionEvent
 import android.view.View
@@ -18,8 +22,6 @@ import java.util.Locale
 import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
-    private val MAIN_ACTIVITY_TAG = "2048_MainActivity"
-
     lateinit var mWebView: WebView
     private var mLastBackPress: Long = 0
     private val mBackPressThreshold: Long = 3500
@@ -50,8 +52,9 @@ class MainActivity : AppCompatActivity() {
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
         settings.setRenderPriority(RenderPriority.HIGH)
-        settings.databasePath = filesDir.parentFile.path + "/databases"
+        settings.databasePath = (filesDir.parentFile?.path ?: filesDir.path) + "/databases"
         mWebView.addJavascriptInterface(WebAppInterface(this), "Android")
+        applyFullScreen(isFullScreen())
 
         // If there is a previous instance restore it in the webview
         if (savedInstanceState != null) {
@@ -61,10 +64,8 @@ class MainActivity : AppCompatActivity() {
             mWebView.loadUrl("file:///android_asset/2048/index.html?lang=" + Locale.getDefault().language)
         }
 
-        Toast.makeText(application, "toggle_fullscreen", Toast.LENGTH_SHORT).show()
-
         // Set fullscreen toggle on webview LongClick
-        mWebView.setOnTouchListener(OnTouchListener { v: View?, event: MotionEvent ->
+        mWebView.setOnTouchListener(OnTouchListener { _: View?, event: MotionEvent ->
             // Implement a long touch action by comparing
             // time between action up and action down
             val currentTime = System.currentTimeMillis()
@@ -88,13 +89,67 @@ class MainActivity : AppCompatActivity() {
 
     class WebAppInterface(private val activity: MainActivity) {
         @JavascriptInterface
-        fun sendScoreToKotlin(score: String) {
-            // Handle the score received from JavaScript
-            activity.runOnUiThread {
-                Toast.makeText(activity, "Score: $score", Toast.LENGTH_SHORT).show()
+        fun sendScoreToKotlin(_score: String) {
+            // Reserved for future native integrations.
+        }
 
-                // You can update your UI or perform other operations with the score
+        @JavascriptInterface
+        fun performHaptic(kind: String?) {
+            activity.runOnUiThread {
+                activity.performHaptic(kind.orEmpty())
             }
+        }
+    }
+
+    private fun performHaptic(kind: String) {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as? Vibrator
+        } ?: return
+
+        if (!vibrator.hasVibrator()) return
+
+        val timings: LongArray
+        val amplitudes: IntArray
+
+        when (kind) {
+            "button" -> {
+                timings = longArrayOf(0, 20)
+                amplitudes = intArrayOf(0, 90)
+            }
+            "move" -> {
+                timings = longArrayOf(0, 14)
+                amplitudes = intArrayOf(0, 55)
+            }
+            "merge" -> {
+                timings = longArrayOf(0, 18, 30, 36)
+                amplitudes = intArrayOf(0, 90, 0, 140)
+            }
+            "undo" -> {
+                timings = longArrayOf(0, 20, 24, 20)
+                amplitudes = intArrayOf(0, 70, 0, 70)
+            }
+            "win" -> {
+                timings = longArrayOf(0, 24, 36, 30, 40, 70)
+                amplitudes = intArrayOf(0, 120, 0, 160, 0, 220)
+            }
+            "lose" -> {
+                timings = longArrayOf(0, 70, 34, 28)
+                amplitudes = intArrayOf(0, 170, 0, 110)
+            }
+            else -> {
+                timings = longArrayOf(0, 16)
+                amplitudes = intArrayOf(0, 60)
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(timings, -1)
         }
     }
 

@@ -3,6 +3,7 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
   this.actuator       = new Actuator;
+  this.lastMove       = null;
 
   this.startTiles     = 2;
 
@@ -20,6 +21,9 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 GameManager.prototype.restart = function () {
   this.storageManager.clearGameState();
   this.actuator.continueGame(); // Clear the game won/lost message
+  if (window.GameFeedback) {
+    window.GameFeedback.haptic("button");
+  }
   this.setup();
 };
 
@@ -47,19 +51,30 @@ GameManager.prototype.undoMove = function () {
       won:        this.won,
       bestScore:  this.storageManager.getBestScore(),
       terminated: this.isGameTerminated(),
-      keepPlaying: this.keepPlaying
+      keepPlaying: this.keepPlaying,
+      lastMove: { moved: true, merged: false, over: false, won: false }
     });
+
+    if (window.GameFeedback) {
+      window.GameFeedback.haptic("undo");
+    }
   }
 };
 
 // Restart the game after user confirmation
 GameManager.prototype.restartWithConfirmation = function () {
     // Open confirm message
+    if (window.GameFeedback) {
+      window.GameFeedback.haptic("button");
+    }
     this.actuator.promptRestart();
 };
 
 GameManager.prototype.undoWithConfirmation = function () {
     // Open confirm message
+    if (window.GameFeedback) {
+      window.GameFeedback.haptic("button");
+    }
     this.actuator.promptUndo();
 };
 
@@ -67,6 +82,9 @@ GameManager.prototype.undoWithConfirmation = function () {
 GameManager.prototype.keepPlaying = function () {
   this.keepPlaying = true;
   this.actuator.continueGame(); // Clear the game won/lost message
+  if (window.GameFeedback) {
+    window.GameFeedback.haptic("button");
+  }
   this.actuate();
 };
 
@@ -139,8 +157,11 @@ GameManager.prototype.actuate = function () {
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
     terminated: this.isGameTerminated(),
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    lastMove: this.lastMove
   });
+
+  this.lastMove = null;
 
 };
 
@@ -184,6 +205,8 @@ GameManager.prototype.move = function (direction) {
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
   var moved      = false;
+  var mergedThisTurn = false;
+  var highestMergeValue = 0;
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
@@ -211,6 +234,8 @@ GameManager.prototype.move = function (direction) {
 
           // Update the score
           self.score += merged.value;
+          mergedThisTurn = true;
+          highestMergeValue = Math.max(highestMergeValue, merged.value);
           Android.sendScoreToKotlin(self.score.toString());
           // The mighty 2048 tile
           if (merged.value === 2048) self.won = true;
@@ -232,7 +257,27 @@ GameManager.prototype.move = function (direction) {
       this.over = true; // Game over!
     }
 
+    this.lastMove = {
+      moved: true,
+      merged: mergedThisTurn,
+      maxMergedValue: highestMergeValue,
+      won: this.won,
+      over: this.over
+    };
+
     this.actuate();
+
+    if (window.GameFeedback) {
+      if (this.over && !this.won) {
+        window.GameFeedback.haptic("lose");
+      } else if (this.won) {
+        window.GameFeedback.haptic("win");
+      } else if (mergedThisTurn) {
+        window.GameFeedback.haptic("merge");
+      } else {
+        window.GameFeedback.haptic("move");
+      }
+    }
   }
 };
 
