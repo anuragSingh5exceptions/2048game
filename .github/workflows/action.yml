@@ -265,3 +265,35 @@ jobs:
           -d "{
                 \"text\": \"📱 APK Build Update\n\n$MESSAGE\n\nApp Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)\nEnvironment: $ENVIRONMENT\nBranch: $BRANCH_NAME\nCommit: $COMMIT_ID\nTriggered by: $ACTOR\nFirebase: uploaded successfully 🚀\"
               }"
+
+      - name: Create Jira Ticket for Regression
+        if: always()
+
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
+
+        run: |
+
+          ISSUE_RESPONSE=$(curl -s -u $JIRA_EMAIL:$JIRA_API_TOKEN \
+            -X POST \
+            -H "Content-Type: application/json" \
+            --data "{
+              \"fields\": {
+                \"project\": {
+                  \"key\": \"$PROJECT_KEY\"
+                },
+                \"summary\": \"Regression Testing - Build $NEW_VERSION_NAME ($NEW_VERSION_CODE)\",
+                \"description\": \"New build available on Firebase.\n\nVersion: $NEW_VERSION_NAME ($NEW_VERSION_CODE)\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\n\nPlease start regression testing.\",
+                \"issuetype\": {
+                  \"name\": \"Task\"
+                }
+              }
+            }" \
+            $JIRA_BASE_URL/rest/api/3/issue)
+
+          ISSUE_KEY=$(echo $ISSUE_RESPONSE | jq -r '.key')
+
+          echo "ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
