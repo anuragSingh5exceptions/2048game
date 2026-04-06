@@ -32,6 +32,13 @@ on:
         description: "Video SDK version"
         required: false
         default: ""
+
+      CREATE_JIRA:
+        description: "Create Jira ticket?"
+        required: true
+        default: false
+        type: boolean
+
   push:
     branches:
       - main
@@ -267,9 +274,8 @@ jobs:
               }"
 
       - name: Read JIRA.md
-
+        if: ${{ github.event.inputs.CREATE_JIRA == 'true' }}
         id: jira_file
-
         run: |
 
           TITLE=$(head -n 1 JIRA.md | sed 's/^# //')
@@ -283,7 +289,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           
       - name: Convert description to ADF
-
+        if: ${{ github.event.inputs.CREATE_JIRA == 'true' }}
         run: |
 
           DESC_JSON=$(jq -n --arg text "$DESCRIPTION" '{
@@ -306,7 +312,7 @@ jobs:
           
 
       - name: Create Jira Ticket
-
+        if: ${{ github.event.inputs.CREATE_JIRA == 'true' }}
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
