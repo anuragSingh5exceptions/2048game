@@ -291,7 +291,7 @@ jobs:
       - name: Convert description to ADF
         if: ${{ github.event.inputs.CREATE_JIRA == 'true' }}
         run: |
-
+      
           DESC_JSON=$(jq -n --arg text "$DESCRIPTION" '{
             type: "doc",
             version: 1,
@@ -307,9 +307,10 @@ jobs:
               }
             ]
           }')
-
-          echo "DESC_JSON=$DESC_JSON" >> $GITHUB_ENV
-          
+      
+          echo "DESC_JSON<<EOF" >> $GITHUB_ENV
+          echo "$DESC_JSON" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create Jira Ticket
         if: ${{ github.event.inputs.CREATE_JIRA == 'true' }}
