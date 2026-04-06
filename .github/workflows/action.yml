@@ -266,6 +266,45 @@ jobs:
                 \"text\": \"📱 APK Build Update\n\n$MESSAGE\n\nApp Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)\nEnvironment: $ENVIRONMENT\nBranch: $BRANCH_NAME\nCommit: $COMMIT_ID\nTriggered by: $ACTOR\nFirebase: uploaded successfully 🚀\"
               }"
 
+      - name: Read JIRA.md
+
+        id: jira_file
+
+        run: |
+
+          TITLE=$(head -n 1 JIRA.md | sed 's/^# //')
+
+          DESCRIPTION=$(tail -n +2 JIRA.md)
+
+          echo "TITLE=$TITLE" >> $GITHUB_ENV
+
+          echo "DESCRIPTION<<EOF" >> $GITHUB_ENV
+          echo "$DESCRIPTION" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+      - name: Convert description to ADF
+
+        run: |
+
+          DESC_JSON=$(jq -n --arg text "$DESCRIPTION" '{
+            type: "doc",
+            version: 1,
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: $text
+                  }
+                ]
+              }
+            ]
+          }')
+
+          echo "DESC_JSON=$DESC_JSON" >> $GITHUB_ENV
+          
+
       - name: Create Jira Ticket
 
         env:
@@ -275,7 +314,7 @@ jobs:
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
 
         run: |
-          
+
           ISSUE_RESPONSE=$(curl -u $JIRA_EMAIL:$JIRA_API_TOKEN \
             -X POST \
             -H "Content-Type: application/json" \
@@ -284,56 +323,15 @@ jobs:
                 \"project\": {
                   \"key\": \"$JIRA_PROJECT_KEY\"
                 },
-                \"summary\": \"Regression Testing - Build $NEW_VERSION_NAME ($NEW_VERSION_CODE)\",
+                \"summary\": \"$TITLE\",
                 \"issuetype\": {
                   \"name\": \"Story\"
                 },
                 \"labels\": [\"Regression\"],
-                \"description\": {
-                  \"type\": \"doc\",
-                  \"version\": 1,
-                  \"content\": [
-                    {
-                      \"type\": \"paragraph\",
-                      \"content\": [
-                        {
-                          \"type\": \"text\",
-                          \"text\": \"Build available on Firebase\"
-                        }
-                      ]
-                    },
-                    {
-                      \"type\": \"paragraph\",
-                      \"content\": [
-                        {
-                          \"type\": \"text\",
-                          \"text\": \"Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)\"
-                        }
-                      ]
-                    },
-                    {
-                      \"type\": \"paragraph\",
-                      \"content\": [
-                        {
-                          \"type\": \"text\",
-                          \"text\": \"Branch: ${{ github.ref_name }}\"
-                        }
-                      ]
-                    },
-                    {
-                      \"type\": \"paragraph\",
-                      \"content\": [
-                        {
-                          \"type\": \"text\",
-                          \"text\": \"Commit: ${{ github.sha }}\"
-                        }
-                      ]
-                    }
-                  ]
-                }
+                \"description\": $DESC_JSON
               }
             }" \
             $JIRA_BASE_URL/rest/api/3/issue)
-          
+
           echo "Response:"
           echo $ISSUE_RESPONSE
