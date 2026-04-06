@@ -275,9 +275,7 @@ jobs:
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
 
         run: |
-
-          echo "Using URL: $JIRA_BASE_URL"
-
+          
           ISSUE_RESPONSE=$(curl -u $JIRA_EMAIL:$JIRA_API_TOKEN \
             -X POST \
             -H "Content-Type: application/json" \
@@ -287,14 +285,55 @@ jobs:
                   \"key\": \"$JIRA_PROJECT_KEY\"
                 },
                 \"summary\": \"Regression Testing - Build $NEW_VERSION_NAME ($NEW_VERSION_CODE)\",
-                \"description\": \"Build available on Firebase.\",
                 \"issuetype\": {
                   \"name\": \"Story\"
                 },
-                \"labels\": [\"Regression\"]
+                \"labels\": [\"Regression\"],
+                \"description\": {
+                  \"type\": \"doc\",
+                  \"version\": 1,
+                  \"content\": [
+                    {
+                      \"type\": \"paragraph\",
+                      \"content\": [
+                        {
+                          \"type\": \"text\",
+                          \"text\": \"Build available on Firebase\"
+                        }
+                      ]
+                    },
+                    {
+                      \"type\": \"paragraph\",
+                      \"content\": [
+                        {
+                          \"type\": \"text\",
+                          \"text\": \"Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)\"
+                        }
+                      ]
+                    },
+                    {
+                      \"type\": \"paragraph\",
+                      \"content\": [
+                        {
+                          \"type\": \"text\",
+                          \"text\": \"Branch: ${{ github.ref_name }}\"
+                        }
+                      ]
+                    },
+                    {
+                      \"type\": \"paragraph\",
+                      \"content\": [
+                        {
+                          \"type\": \"text\",
+                          \"text\": \"Commit: ${{ github.sha }}\"
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             }" \
             $JIRA_BASE_URL/rest/api/3/issue)
-
+          
           echo "Response:"
           echo $ISSUE_RESPONSE
