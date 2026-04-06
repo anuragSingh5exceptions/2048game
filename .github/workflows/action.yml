@@ -286,6 +286,9 @@ jobs:
               }
             }" \
             $JIRA_BASE_URL/rest/api/3/issue)
-      
+
+          echo "URL -> $JIRA_BASE_URL"
+          echo "URL -> $JIRA_EMAIL"
+          echo "URL -> $JIRA_PROJECT_KEY"
           echo "Response:"
           echo $ISSUE_RESPONSE
