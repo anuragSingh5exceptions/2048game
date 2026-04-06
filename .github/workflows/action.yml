@@ -245,38 +245,23 @@ jobs:
 
         if: always()
 
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ENVIRONMENT: ${{ github.event.inputs.ENV }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          COMMIT_ID: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+
         run: |
 
-          STATUS="${{ job.status }}"
-
-          MESSAGE=""
-
-          if [ "$STATUS" = "success" ]; then
+          if [ "${{ job.status }}" = "success" ]; then
             MESSAGE="✅ Build Successful"
           else
             MESSAGE="❌ Build Failed"
           fi
 
-          curl -X POST -H 'Content-type: application/json' \
-
-          --data "{
-
-            \"text\": \"📱 APK Build Update
-
-          $MESSAGE
-
-            App Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)
-
-            Environment: ${{ github.event.inputs.ENV }}
-
-            Branch: ${{ github.ref_name }}
-
-            Commit: ${{ github.sha }}
-
-            Triggered by: ${{ github.actor }}
-
-            Firebase: uploaded successfully\"
-
-            }" \
-      
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -d "{
+                \"text\": \"📱 APK Build Update\n\n$MESSAGE\n\nApp Version: $NEW_VERSION_NAME ($NEW_VERSION_CODE)\nEnvironment: $ENVIRONMENT\nBranch: $BRANCH_NAME\nCommit: $COMMIT_ID\nTriggered by: $ACTOR\nFirebase: uploaded successfully 🚀\"
+              }"
