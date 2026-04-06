@@ -267,16 +267,15 @@ jobs:
               }"
 
       - name: Create Jira Ticket
-
         run: |
-
+      
           ISSUE_RESPONSE=$(curl -u $JIRA_EMAIL:$JIRA_API_TOKEN \
             -X POST \
             -H "Content-Type: application/json" \
             --data "{
               \"fields\": {
                 \"project\": {
-                  \"key\": \"RDA\"
+                  \"key\": \"$JIRA_PROJECT_KEY\"
                 },
                 \"summary\": \"Regression Testing - Build $NEW_VERSION_NAME ($NEW_VERSION_CODE)\",
                 \"description\": \"Build available on Firebase.\",
@@ -287,5 +286,6 @@ jobs:
               }
             }" \
             $JIRA_BASE_URL/rest/api/3/issue)
-
+      
+          echo "Response:"
           echo $ISSUE_RESPONSE
